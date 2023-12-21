@@ -1,0 +1,124 @@
+Normal
+5.	Настройте мониторинг Nginx и MySQL в Prometheus, создайте панели мониторинга в Grafana, отображающие основные метрики (например, запросы в секунду, использование CPU и памяти) Nginx и MySQL
+
+Server db01
+	# Add Prometheus system user and group:
+	$ sudo groupadd --system prometheus
+	$ sudo useradd -s /sbin/nologin --system -g prometheus prometheus
+
+	# Download and install Prometheus MySQL Exporter
+	$ curl -s https://api.github.com/repos/prometheus/mysqld_exporter/releases/latest   | grep browser_download_url   | grep linux-amd64 | cut -d '"' -f 4   | wget -qi -
+	$ tar xvf mysqld_exporter*.tar.gz
+	$ sudo mv  mysqld_exporter-*.linux-amd64/mysqld_exporter /usr/local/bin/
+	$ sudo chmod +x /usr/local/bin/mysqld_exporter
+
+	# Confirm installation by checking version of mysqld_exporter
+	$ mysqld_exporter  --version
+
+	# Create Prometheus exporter database user
+	$ mysql -u root -p
+	mysql> CREATE USER 'mysqld_exporter'@'%' IDENTIFIED BY 'Qaz.123';
+	mysql> GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysqld_exporter'@'%';
+	mysql> FLUSH PRIVILEGES;
+	mysql> EXIT
+
+	# Configure database credentials.
+	# Create database credentials file:
+	$ sudo vim /etc/.mysqld_exporter.cnf
+
+	# Add correct username and password for user create
+
+	[client]
+	user=mysqld_exporter
+	password=Qaz.123
+
+	# Set ownership permissions:
+	$ sudo chown root:prometheus /etc/.mysqld_exporter.cnf
+
+	# Create systemd unit file ( For Systemd systems )
+	sudo vi /etc/systemd/system/mysql_exporter.service
+	# Add the following content
+		[Unit]
+		Description=Prometheus MySQL Exporter
+		After=network.target
+		User=prometheus
+		Group=prometheus
+
+		[Service]
+		Type=simple
+		Restart=always
+		ExecStart=/usr/local/bin/mysqld_exporter \
+		--config.my-cnf /etc/.mysqld_exporter.cnf \
+		--collect.global_status \
+		--collect.info_schema.innodb_metrics \
+		--collect.auto_increment.columns \
+		--collect.info_schema.processlist \
+		--collect.binlog_size \
+		--collect.info_schema.tablestats \
+		--collect.global_variables \
+		--collect.info_schema.query_response_time \
+		--collect.info_schema.userstats \
+		--collect.info_schema.tables \
+		--collect.perf_schema.tablelocks \
+		--collect.perf_schema.file_events \
+		--collect.perf_schema.eventswaits \
+		--collect.perf_schema.indexiowaits \
+		--collect.perf_schema.tableiowaits \
+		--collect.slave_status \
+		--web.listen-address=0.0.0.0:9104
+
+
+	$ sudo systemctl daemon-reload
+	$ sudo systemctl enable mysql_exporter
+	$ sudo systemctl start mysql_exporter
+
+
+	# Configure MySQL endpoint to be scraped by Prometheus Server
+	scrape_configs:
+      - job_name: server1_db
+      static_configs:
+        - targets: ['192.168.53.101:9104']
+
+
+
+	Download json-file form https://grafana.com/grafana/dashboards/7362-mysql-overview/
+	Add a new dashboard for mysql_exporter in grafana (192.168.53.103:3000)
+
+Server web01
+	Download nginx-prometheus-exporter from https://github.com/nginxinc/nginx-prometheus-exporter/tags
+	Move to /opt/nginx-exporter
+	sudo vi /etc/systemd/system/nginx-exporter.service
+		[Unit]
+		Description=Nginx Exporter
+		Wants=network-onltne.target
+		After=network-online.target
+
+		StartLimttIntervalSec=0
+
+		[Service]
+		User=nginx-exporter
+		Group=nginx-exporter
+		Type=simple
+		Restart=on-failure
+		RestartSec=5s
+
+		ExecStart=/opt/nginx-exporter/nginx-prometheus-exporter -nginx.scrape-uri=http://192.168.53.101:8008/nginx_status
+
+		[Install]
+		WantedBy=multi-user.target
+
+	$ sudo systemctl enable nginx-exporter
+	$ sudo systemctl start nginx-exporter
+
+
+Change Prometheus.yml
+	sudo vi /etc/prometheus/prometheus.yml
+	# Add new job in Prometeus
+		- job_name: 'NGINX v.2'
+	    static_configs:
+	      - targets: ['192.168.53.101:9113']
+
+	    - job_name: 'mysql_exporter'
+	    static_configs:
+	      - targets: ['192.168.53.102:9104']
+
