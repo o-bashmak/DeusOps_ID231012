@@ -1,0 +1,37 @@
+WEB01 roadmap
+Выполняем установку в вагрант-файле
+    sudo apt-get update
+    sudo apt-get install nginx -y
+    service nginx start	
+
+    sudo apt install php-mbstring -y
+    sudo apt install phpmyadmin -y 
+
+что бы был доступ к phpMyAdmin, нужно в файл 
+/etc/apache2/apache2.conf
+добавить в конце строку
+Include /etc/phpmyadmin/apache.conf
+и sudo systemctl restart apache2
+
+Прописываем свой адрес сервера MySQL в файле /etc/phpmyadmin/config.inc.php  - снимаем коменты и указываем нужный IP
+	$cfg['Servers'][$i]['host'] = '192.168.53.102';
+	$cfg['Servers'][$i]['connect_type'] = 'tcp';
+
+Установка Piwigo:
+	качаем архив и распаковываем: 
+	curl -o piwigo.zip https://piwigo.org/download/dlcounter.php?code=latest
+	sudo unzip piwigo.zip -d /var/www/html
+	Устнанавливаем права на файлы:
+	sudo chmod -R 777 /var/www/html/piwigo
+	sudo systemctl restart apache2
+	Открываем http://192.168.53.101/piwigo
+	Настраиваем {
+		host: 192.168.53.102
+		user: user
+		password: Qaz.123
+		Database name: DB_Piwigo (должна быть создана в MySQL)
+		Database tables prefix: piwigo_
+
+		Administration configuration Настраиваем freestily
+
+	}
