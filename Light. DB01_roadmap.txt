@@ -1,0 +1,24 @@
+Шаги в db01
+Выполняем установку в вагрант-файле
+	sudo apt-get update
+    sudo apt-get install mysql-server -y
+Выполняем настройку безопасности (удаляем анонимных пользователей, тестовые БД)
+	sudo mysql_secure_installation
+Настройка аутентификации и прав пользователя. Ставим для root пользователя пароль. mysql_native_password - потому что используем phpMyAdmin:
+	ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'Qaz.123';
+	FLUSH PRIVILEGES;
+
+
+Если нужен еще пользователь, то можем добавить:
+	CREATE USER 'user'@'localhost' IDENTIFIED BY 'Qaz.123';
+	GRANT ALL PRIVILEGES ON *.* TO 'user'@'localhost' WITH GRANT OPTION;
+
+
+Для удаленного доступа к локальной БД требуется пользователю так же прописать следующее:
+	CREATE USER 'user'@'%' IDENTIFIED BY 'Qaz.123';
+	GRANT ALL PRIVILEGES ON *.* TO 'user'@'%' WITH GRANT OPTION;
+	FLUSH PRIVILEGES;
+
+
+Выход из БД
+	EXIT;
