@@ -31,6 +31,8 @@ Vagrant.configure(2) do |config|
     sudo apt-get update
     sudo apt-get install nginx -y
     service nginx start
+    sudo apt install php-mbstring -y
+    sudo apt install phpmyadmin -y 
     SHELL
   end
 
@@ -67,8 +69,8 @@ Vagrant.configure(2) do |config|
     subconfig.vm.hostname = "#{hostname_3}"
     # настройки сети
     subconfig.vm.network "private_network", ip: "192.168.53.103"
-    subconfig.vm.provision "shell", path: "E:/DOps/vagrant_ID231012/Grafana.sh"
-    subconfig.vm.provision "shell", path: "E:/DOps/vagrant_ID231012/prometheus.sh" 
+    subconfig.vm.provision "shell", path: "./Grafana.sh"
+    subconfig.vm.provision "shell", path: "./prometheus.sh" 
   end
 
   # ЧЕТВЕРТАЯ ВИРТУАЛЬНАЯ МАШИНА
